@@ -3,11 +3,13 @@
 <PropertyGroup>
 	<TargetFramework>net472</TargetFramework>
 </PropertyGroup>
-	
+
 <PropertyGroup>
 	<StartAction>Program</StartAction>
 	<StartProgram>C:\Windows\explorer.exe</StartProgram>
 	<StartArguments>steam://run/1533390</StartArguments>
+	<DebugType>none</DebugType>
+	<DebugSymbols>false</DebugSymbols>
 </PropertyGroup>
 
 <!-- AssemblyPublicizer usage inspired from GorillaShirts -->
@@ -17,15 +19,14 @@
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 	</PackageReference>	
 </ItemGroup>
+	
 <ItemGroup>
   <Reference Include="0Harmony">
     <HintPath>D:\Steam\steamapps\common\Gorilla Tag\BepInEx\core\0Harmony.dll</HintPath>
   </Reference>
-  <Reference Include="0Harmony20">
-    <HintPath>D:\Steam\steamapps\common\Gorilla Tag\BepInEx\core\0Harmony20.dll</HintPath>
-  </Reference>
   <Reference Include="Assembly-CSharp">
     <HintPath>D:\Steam\steamapps\common\Gorilla Tag\Gorilla Tag_Data\Managed\Assembly-CSharp.dll</HintPath>
+	 <Private>False</Private>
   </Reference>
   <Reference Include="Assembly-CSharp-firstpass">
     <HintPath>D:\Steam\steamapps\common\Gorilla Tag\Gorilla Tag_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
@@ -53,6 +54,7 @@
   </Reference>
   <Reference Include="BepInEx">
     <HintPath>D:\Steam\steamapps\common\Gorilla Tag\BepInEx\core\BepInEx.dll</HintPath>
+	<Private>False</Private>
   </Reference>
   <Reference Include="BepInEx.Harmony">
     <HintPath>D:\Steam\steamapps\common\Gorilla Tag\BepInEx\core\BepInEx.Harmony.dll</HintPath>
@@ -728,9 +730,6 @@
   </Reference>
   <Reference Include="UnityEngine.XR.LegacyInputHelpers">
     <HintPath>D:\Steam\steamapps\common\Gorilla Tag\Gorilla Tag_Data\Managed\UnityEngine.XR.LegacyInputHelpers.dll</HintPath>
-  </Reference>
-  <Reference Include="UnityEngine.XRModule">
-    <HintPath>D:\Steam\steamapps\common\Gorilla Tag\Gorilla Tag_Data\Managed\UnityEngine.XRModule.dll</HintPath>
   </Reference>
 </ItemGroup>
 </Project>

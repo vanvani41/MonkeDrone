@@ -3,8 +3,7 @@ using UnityEngine;
 using System;
 
 // ═══════════════════════════════════════════════════════════════
-//  FPV DRONE MOD  ·  Gorilla Tag  ·  BepInEx 5  ·  net472
-//  Namespace: MonkeDrone  ·  Class: Mod
+//  MonkeDrone yay!!!
 // ═══════════════════════════════════════════════════════════════
 
 namespace MonkeDrone
@@ -20,6 +19,7 @@ namespace MonkeDrone
         public float calibTimer = 7f;
         public bool calibDone = false;
 
+        // axisMin/Max/Center — межі та центр кожної осі контролера (індекси 0-9)
         readonly float[] axisMin = new float[10];
         readonly float[] axisMax = new float[10];
         readonly float[] axisCenter = new float[10];
@@ -27,51 +27,59 @@ namespace MonkeDrone
 
         // ─── MENU ───────────────────────────────────────────────────
         bool menuOpen = false;
-        int menuSel = 0;
+        int menuSel = 0;  // поточно вибраний рядок у меню
 
-        int throttleAxis = 1;
-        int yawAxis = 0;
-        int pitchAxis = 3;
-        int rollAxis = 2;
-        int armAxis = 5;
+        // Drone axis mappings — індекс осі контролера (0-9)
+        int DroneT = 1;  // Throttle — газ (вгору/вниз)
+        int DroneY = 0;  // Yaw      — поворот навколо вертикальної осі
+        int DroneP = 3;  // Pitch    — нахил вперед/назад
+        int DroneR = 2;  // Roll     — нахил ліво/право
+        int DroneA = 5;  // Arming   — вмикання/вимикання моторів
 
         public enum FlightMode { Acro, Angle, Horizon }
         public enum SpeedMode { Slow, Middle, Fast }
-        FlightMode flightMode = FlightMode.Angle;
-        SpeedMode speedMode = SpeedMode.Middle;
 
-        readonly string[] menuLabels = { "Throttle Axis", "Yaw Axis", "Pitch Axis",
-                                             "Roll Axis",    "Arm Axis", "Mode", "Speed" };
+        FlightMode DroneM = FlightMode.Angle;  // Mode  — режим польоту
+        SpeedMode DroneS = SpeedMode.Middle;  // Speed — швидкість
+
+        readonly string[] menuLabels =
+        {
+            "Throttle Axis", "Yaw Axis", "Pitch Axis",
+            "Roll Axis",     "Arm Axis", "Mode", "Speed"
+        };
         readonly string[][] menuOptions =
         {
-            new[]{"0","1","2","3","4","5","6","7","8","9"},
-            new[]{"0","1","2","3","4","5","6","7","8","9"},
-            new[]{"0","1","2","3","4","5","6","7","8","9"},
-            new[]{"0","1","2","3","4","5","6","7","8","9"},
-            new[]{"0","1","2","3","4","5","6","7","8","9"},
-            new[]{"Acro","Angle","Horizon"},
-            new[]{"Slow","Middle","Fast"}
+            new[]{"0","1","2","3","4","5","6","7","8","9"},  // Throttle
+            new[]{"0","1","2","3","4","5","6","7","8","9"},  // Yaw
+            new[]{"0","1","2","3","4","5","6","7","8","9"},  // Pitch
+            new[]{"0","1","2","3","4","5","6","7","8","9"},  // Roll
+            new[]{"Disarmed","Armed"},                       // Arm
+            new[]{"Acro","Angle","Horizon"},                 // Mode
+            new[]{"Slow","Mid","Fast"}                       // Speed
         };
 
         // ─── ARMING ─────────────────────────────────────────────────
         bool armed = false;
-        bool prevArmSwitch = false;
+        bool prevArmSwitch = false;  // попередній стан arm перемикача
         bool showThrottleWarn = false;
 
         // ─── DRONE OBJECT ───────────────────────────────────────────
-        GameObject droneObj;
-        Camera droneCam;
-        Rigidbody droneRb;
+        // go  — GameObject самого дрона у сцені
+        // cam — FPV камера прикріплена до дрона
+        // rb  — Rigidbody (фізичне тіло дрона, маса / сила / обертання)
+        GameObject go;
+        Camera cam;
+        Rigidbody rb;
         bool droneReady = false;
 
         // ─── STATS ──────────────────────────────────────────────────
-        float flightTimer = 0f;
+        float flightTimer = 0f;  // скільки секунд летимо з моменту армінгу
 
-        // ─── SPEED PRESETS ───────────────────────────────────────────
-        readonly float[] thrustPreset = { 9f, 20f, 38f };
-        readonly float[] ratePreset = { 90f, 240f, 480f };
-        readonly float[] angleLimitPre = { 25f, 50f, 75f };
-        readonly float[] kpPreset = { 8f, 10f, 14f };
+        // ─── SPEED PRESETS  [Slow, Middle, Fast] ─────────────────────
+        readonly float[] thrustPreset = { 9f, 20f, 38f };  // Ньютони тяги
+        readonly float[] ratePreset = { 90f, 240f, 480f };  // градусів/сек (Acro)
+        readonly float[] angleLimitPre = { 25f, 50f, 75f };  // макс нахил (Angle)
+        readonly float[] kpPreset = { 8f, 10f, 14f };  // P-коефіцієнт (Angle)
 
         // ─── GUI STYLES ──────────────────────────────────────────────
         GUIStyle styleLabel;
@@ -80,7 +88,7 @@ namespace MonkeDrone
         bool stylesInit = false;
 
         // ════════════════════════════════════════════════════════════
-        //  AWAKE  —  викликається BepInEx при старті
+        //  AWAKE
         // ════════════════════════════════════════════════════════════
 
         void Awake()
@@ -97,7 +105,7 @@ namespace MonkeDrone
         }
 
         // ════════════════════════════════════════════════════════════
-        //  INITIALIZE  —  викликається з Plugin.cs / OnPlayerSpawned
+        //  INIT  —  викликається з Plugin.cs / OnPlayerSpawned
         // ════════════════════════════════════════════════════════════
 
         public static void Init()
@@ -111,11 +119,10 @@ namespace MonkeDrone
             Instance.droneReady = false;
             Instance.flightTimer = 0f;
 
-            // Якщо дрон вже існував — знищити
-            if (Instance.droneObj != null)
-                Destroy(Instance.droneObj);
+            if (Instance.go != null)
+                Destroy(Instance.go);
 
-            Logger.LogInfo("[MonkeDrone] Initialized — calibration started");
+            Instance.Logger.LogInfo("[MonkeDrone] Init — calibration started");
         }
 
         // ════════════════════════════════════════════════════════════
@@ -130,13 +137,9 @@ namespace MonkeDrone
                 menuOpen = !menuOpen;
 
             if (!menuOpen)
-            {
                 UpdateArm();
-            }
             else
-            {
                 HandleMenuKeys();
-            }
         }
 
         // ════════════════════════════════════════════════════════════
@@ -175,11 +178,7 @@ namespace MonkeDrone
             else if (calibPhase == CalibPhase.SelectType)
             {
                 bool pickGamepad = Input.GetKeyDown(KeyCode.Alpha1)
-                                || Input.GetKeyDown(KeyCode.Keypad1)
-                                || Input.GetKeyDown(KeyCode.JoystickButton0);
                 bool pickFPV = Input.GetKeyDown(KeyCode.Alpha2)
-                                || Input.GetKeyDown(KeyCode.Keypad2)
-                                || Input.GetKeyDown(KeyCode.JoystickButton1);
 
                 if (pickGamepad || pickFPV)
                 {
@@ -187,7 +186,7 @@ namespace MonkeDrone
                     calibDone = true;
                     calibPhase = CalibPhase.Done;
                     SpawnDrone();
-                    Logger.LogInfo("[MonkeDrone] Calibration done. Type: "
+                    Logger.LogInfo("[MonkeDrone] Calib done. Type: "
                                    + (isGamepad ? "Gamepad" : "FPV Radio"));
                 }
             }
@@ -204,35 +203,36 @@ namespace MonkeDrone
                 spawnPos = Camera.main.transform.position
                          + Camera.main.transform.forward * 0.5f;
 
-            droneObj = new GameObject("FPV_Drone");
-            droneObj.transform.position = spawnPos;
+            // go — головний GameObject дрона
+            go = new GameObject("FPV_Drone");
+            go.transform.position = spawnPos;
 
-            // Rigidbody
-            droneRb = droneObj.AddComponent<Rigidbody>();
-            droneRb.mass = 0.25f;
-            droneRb.drag = 1.8f;
-            droneRb.angularDrag = 4f;
-            droneRb.useGravity = true;
-            droneRb.maxAngularVelocity = 50f;
+            // rb — Rigidbody: маса, тяга, обертання, гравітація
+            rb = go.AddComponent<Rigidbody>();
+            rb.mass = 0.25f;
+            rb.linearDamping = 1.8f;   // опір руху (колишній drag)
+            rb.angularDamping = 4f;     // опір обертання (колишній angularDrag)
+            rb.useGravity = true;
+            rb.maxAngularVelocity = 50f;
 
-            // Візуальний куб (червоний) щоб бачити дрон у світі
+            // Візуальний куб щоб бачити дрон у світі
             GameObject vis = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            vis.transform.SetParent(droneObj.transform, false);
+            vis.transform.SetParent(go.transform, false);
             vis.transform.localScale = Vector3.one * 0.12f;
             Destroy(vis.GetComponent<Collider>());
             var rend = vis.GetComponent<Renderer>();
             if (rend) rend.material.color = Color.red;
 
-            // FPV камера
-            droneCam = droneObj.AddComponent<Camera>();
-            droneCam.fieldOfView = 95f;
-            droneCam.nearClipPlane = 0.05f;
-            droneCam.depth = 2;
-            droneCam.clearFlags = CameraClearFlags.Skybox;
-            droneCam.enabled = false;
+            // cam — FPV камера прикріплена до дрона
+            cam = go.AddComponent<Camera>();
+            cam.fieldOfView = 95f;
+            cam.nearClipPlane = 0.05f;
+            cam.depth = 2;
+            cam.clearFlags = CameraClearFlags.Skybox;
+            cam.enabled = false;  // вмикається тільки при армінгу
 
-            // Нахил камери вперед як у реального дрона
-            droneCam.transform.localEulerAngles = new Vector3(15f, 0f, 0f);
+            // Нахил камери вперед як у реального FPV дрона
+            cam.transform.localEulerAngles = new Vector3(15f, 0f, 0f);
 
             droneReady = true;
             Logger.LogInfo("[MonkeDrone] Drone spawned at " + spawnPos);
@@ -246,16 +246,14 @@ namespace MonkeDrone
         {
             if (!droneReady) return;
 
-            bool armSwitch = NormAxis(armAxis) > 0.5f;
+            bool armSwitch = NormAxis(DroneA) > 0.5f;
 
             if (armSwitch != prevArmSwitch)
             {
                 if (armSwitch)
                 {
-                    if (ThrottleIsLow())
-                        Arm();
-                    else
-                        showThrottleWarn = true;
+                    if (ThrottleIsLow()) Arm();
+                    else showThrottleWarn = true;
                 }
                 else
                 {
@@ -270,11 +268,10 @@ namespace MonkeDrone
 
         bool ThrottleIsLow()
         {
-            float raw = RawAxis(throttleAxis);
-            float range = axisMax[throttleAxis] - axisMin[throttleAxis];
+            float raw = RawAxis(DroneT);
+            float range = axisMax[DroneT] - axisMin[DroneT];
             if (range < 0.001f) return true;
-            float norm = (raw - axisMin[throttleAxis]) / range;
-            return norm < 0.12f;
+            return (raw - axisMin[DroneT]) / range < 0.12f;
         }
 
         void Arm()
@@ -284,7 +281,7 @@ namespace MonkeDrone
             flightTimer = 0f;
 
             if (Camera.main != null) Camera.main.enabled = false;
-            if (droneCam != null) droneCam.enabled = true;
+            if (cam != null) cam.enabled = true;
 
             Logger.LogInfo("[MonkeDrone] ARMED");
         }
@@ -294,7 +291,7 @@ namespace MonkeDrone
             armed = false;
             showThrottleWarn = false;
 
-            if (droneCam != null) droneCam.enabled = false;
+            if (cam != null) cam.enabled = false;
             if (Camera.main != null) Camera.main.enabled = true;
 
             Logger.LogInfo("[MonkeDrone] DISARMED");
@@ -308,24 +305,23 @@ namespace MonkeDrone
         {
             if (!droneReady || !armed) return;
 
-            int si = (int)speedMode;
+            int si = (int)DroneS;
             float maxThrust = thrustPreset[si];
             float maxRate = ratePreset[si];
             float maxAngle = angleLimitPre[si];
             float kp = kpPreset[si];
 
             float throttleNorm = ThrottleNorm();
-            float yawIn = NormAxis(yawAxis);
-            float pitchIn = NormAxis(pitchAxis);
-            float rollIn = NormAxis(rollAxis);
+            float yawIn = NormAxis(DroneY);
+            float pitchIn = NormAxis(DroneP);
+            float rollIn = NormAxis(DroneR);
 
-            // Тяга
-            float gravComp = droneRb.mass * Physics.gravity.magnitude;
+            // Тяга — компенсуємо гравітацію + додаємо тягу гравця
+            float gravComp = rb.mass * Physics.gravity.magnitude;
             float thrust = throttleNorm * maxThrust + gravComp;
-            droneRb.AddForce(droneObj.transform.up * thrust, ForceMode.Force);
+            rb.AddForce(go.transform.up * thrust, ForceMode.Force);
 
-            // Ротація
-            switch (flightMode)
+            switch (DroneM)
             {
                 case FlightMode.Acro:
                     FlightAcro(pitchIn, rollIn, yawIn, maxRate);
@@ -336,6 +332,7 @@ namespace MonkeDrone
                     break;
 
                 case FlightMode.Horizon:
+                    // Blend: центр стіка = Angle, краї = Acro
                     float blend = Mathf.Clamp01(
                         (Mathf.Abs(pitchIn) + Mathf.Abs(rollIn) - 0.6f) / 0.4f);
                     FlightAngle(pitchIn * (1f - blend), rollIn * (1f - blend),
@@ -347,56 +344,55 @@ namespace MonkeDrone
             flightTimer += Time.fixedDeltaTime;
         }
 
+        // Acro — прямий контроль кутової швидкості (без автовирівнювання)
         void FlightAcro(float pitch, float roll, float yaw, float maxRate)
         {
             float rad = maxRate * Mathf.Deg2Rad;
-            Vector3 torque = new Vector3(
+            rb.AddRelativeTorque(new Vector3(
                  pitch * rad * 0.3f,
                  yaw * rad * 0.15f,
                 -roll * rad * 0.3f
-            );
-            droneRb.AddRelativeTorque(torque, ForceMode.Force);
+            ), ForceMode.Force);
         }
 
+        // Angle — автовирівнювання до заданого кута нахилу
         void FlightAngle(float pitch, float roll, float yaw,
                          float maxAngle, float maxRate, float kp)
         {
             float targetPitch = pitch * maxAngle;
             float targetRoll = roll * maxAngle;
 
-            Vector3 euler = droneObj.transform.eulerAngles;
+            Vector3 euler = go.transform.eulerAngles;
             float curPitch = euler.x > 180f ? euler.x - 360f : euler.x;
             float curRoll = euler.z > 180f ? euler.z - 360f : euler.z;
 
-            float pitchErr = targetPitch - curPitch;
-            float rollErr = targetRoll - curRoll;
-
-            Vector3 torque = new Vector3(
-                 pitchErr * kp * Time.fixedDeltaTime,
+            rb.AddRelativeTorque(new Vector3(
+                 (targetPitch - curPitch) * kp * Time.fixedDeltaTime,
                  yaw * maxRate * Mathf.Deg2Rad * 0.1f,
-                -rollErr * kp * Time.fixedDeltaTime
-            );
-            droneRb.AddRelativeTorque(torque, ForceMode.Force);
+                -(targetRoll - curRoll) * kp * Time.fixedDeltaTime
+            ), ForceMode.Force);
         }
 
         float ThrottleNorm()
         {
-            float raw = RawAxis(throttleAxis);
-            float range = axisMax[throttleAxis] - axisMin[throttleAxis];
+            float raw = RawAxis(DroneT);
+            float range = axisMax[DroneT] - axisMin[DroneT];
             if (range < 0.001f) return 0f;
-            return Mathf.Clamp01((raw - axisMin[throttleAxis]) / range);
+            return Mathf.Clamp01((raw - axisMin[DroneT]) / range);
         }
 
         // ════════════════════════════════════════════════════════════
         //  INPUT HELPERS
         // ════════════════════════════════════════════════════════════
 
+        // RawAxis — сирий Unity axis без нормалізації (-1 до +1)
         float RawAxis(int idx)
         {
             try { return Input.GetAxisRaw("Joystick1Axis" + idx); }
             catch { return 0f; }
         }
 
+        // NormAxis — нормалізований axis від -1 до +1 на основі калібровки
         float NormAxis(int idx)
         {
             float raw = RawAxis(idx);
@@ -431,16 +427,16 @@ namespace MonkeDrone
 
         void ChangeMenuValue(int item, int delta)
         {
-            int maxOpt = menuOptions[item].Length;
+            int max = menuOptions[item].Length;
             switch (item)
             {
-                case 0: throttleAxis = Wrap(throttleAxis + delta, maxOpt); break;
-                case 1: yawAxis = Wrap(yawAxis + delta, maxOpt); break;
-                case 2: pitchAxis = Wrap(pitchAxis + delta, maxOpt); break;
-                case 3: rollAxis = Wrap(rollAxis + delta, maxOpt); break;
-                case 4: armAxis = Wrap(armAxis + delta, maxOpt); break;
-                case 5: flightMode = (FlightMode)Wrap((int)flightMode + delta, maxOpt); break;
-                case 6: speedMode = (SpeedMode)Wrap((int)speedMode + delta, maxOpt); break;
+                case 0: DroneT = Wrap(DroneT + delta, max); break;
+                case 1: DroneY = Wrap(DroneY + delta, max); break;
+                case 2: DroneP = Wrap(DroneP + delta, max); break;
+                case 3: DroneR = Wrap(DroneR + delta, max); break;
+                case 4: DroneA = Wrap(DroneA + delta, max); break;
+                case 5: DroneM = (FlightMode)Wrap((int)DroneM + delta, max); break;
+                case 6: DroneS = (SpeedMode)Wrap((int)DroneS + delta, max); break;
             }
         }
 
@@ -453,13 +449,11 @@ namespace MonkeDrone
         void OnGUI()
         {
             EnsureStyles();
-
             if (!calibDone) { DrawCalib(); return; }
             if (menuOpen) { DrawMenu(); return; }
             if (droneReady) DrawOSD();
         }
 
-        // ── Калібровка ───────────────────────────────────────────────
         void DrawCalib()
         {
             int W = Screen.width, H = Screen.height;
@@ -485,7 +479,7 @@ namespace MonkeDrone
                     title = "CALIBRATION  —  STEP 3 / 3";
                     body = "Вибери тип контролера:\n\n"
                           + "[1]  або  [Button A]  →  Gamepad\n"
-                          + "[2]  або  [Button B]  →  FPV Radio (Taranis / EdgeTX / ін.)";
+                          + "[2]  або  [Button B]  →  FPV Radio";
                     break;
             }
 
@@ -493,45 +487,43 @@ namespace MonkeDrone
             GUI.Label(new Rect(W * 0.1f, H * 0.42f, W * 0.8f, 180f), body, styleLabel);
         }
 
-        // ── OSD ──────────────────────────────────────────────────────
         void DrawOSD()
         {
             int W = Screen.width, H = Screen.height;
 
-            // Arm індикатор (лівий верх)
+            // Arm індикатор — лівий верх
             GUIStyle armSt = new GUIStyle(styleLabel);
             armSt.alignment = TextAnchor.UpperLeft;
             armSt.normal.textColor = armed ? Color.green : Color.red;
             GUI.Label(new Rect(14, 10, 150, 32), armed ? "● ARMED" : "○ DISARMED", armSt);
 
-            // Таймер (лівий низ)
+            // Таймер польоту — лівий низ
             TimeSpan ts = TimeSpan.FromSeconds(flightTimer);
-            string timerTxt = $"{ts.Minutes:00}:{ts.Seconds:00}.{ts.Milliseconds / 100}";
             GUIStyle timerSt = new GUIStyle(styleLabel);
             timerSt.alignment = TextAnchor.LowerLeft;
             timerSt.normal.textColor = Color.white;
-            GUI.Label(new Rect(14, H - 90, 160, 32), timerTxt, timerSt);
+            GUI.Label(new Rect(14, H - 90, 160, 32),
+                      $"{ts.Minutes:00}:{ts.Seconds:00}.{ts.Milliseconds / 100}", timerSt);
 
-            // Mode + Speed (правий низ)
+            // Mode + Speed — правий низ
             GUIStyle rightSt = new GUIStyle(styleLabel);
             rightSt.alignment = TextAnchor.LowerRight;
             rightSt.normal.textColor = ModeColor();
             GUI.Label(new Rect(W - 174, H - 90, 160, 32),
-                      flightMode.ToString().ToUpper(), rightSt);
+                      DroneM.ToString().ToUpper(), rightSt);
             rightSt.normal.textColor = Color.white;
             GUI.Label(new Rect(W - 174, H - 56, 160, 32),
-                      speedMode.ToString().ToUpper(), rightSt);
+                      DroneS.ToString().ToUpper(), rightSt);
 
-            // Два стіки (центр знизу)
-            float stickSz = 72f;
-            float gap = 18f;
+            // Два стіки — центр знизу
+            float stickSz = 72f, gap = 18f;
             float stickX = (W - stickSz * 2 - gap) * 0.5f;
             float stickY = H - stickSz - 14f;
 
             DrawStick(new Rect(stickX, stickY, stickSz, stickSz),
-                      NormAxis(yawAxis), ThrottleNorm() * 2f - 1f, "L");
+                      NormAxis(DroneY), ThrottleNorm() * 2f - 1f, "L");
             DrawStick(new Rect(stickX + stickSz + gap, stickY, stickSz, stickSz),
-                      NormAxis(rollAxis), NormAxis(pitchAxis), "R");
+                      NormAxis(DroneR), NormAxis(DroneP), "R");
 
             // Центральний текст
             if (showThrottleWarn)
@@ -552,7 +544,7 @@ namespace MonkeDrone
 
         Color ModeColor()
         {
-            switch (flightMode)
+            switch (DroneM)
             {
                 case FlightMode.Acro: return new Color(1f, 0.4f, 0.4f);
                 case FlightMode.Angle: return new Color(0.4f, 1f, 0.4f);
@@ -567,10 +559,12 @@ namespace MonkeDrone
             GUI.DrawTexture(box, Texture2D.whiteTexture);
 
             GUI.color = new Color(1f, 1f, 1f, 0.18f);
-            GUI.DrawTexture(new Rect(box.x + box.width * 0.5f - 1f, box.y, 2f, box.height),
-                            Texture2D.whiteTexture);
-            GUI.DrawTexture(new Rect(box.x, box.y + box.height * 0.5f - 1f, box.width, 2f),
-                            Texture2D.whiteTexture);
+            GUI.DrawTexture(
+                new Rect(box.x + box.width * 0.5f - 1f, box.y, 2f, box.height),
+                Texture2D.whiteTexture);
+            GUI.DrawTexture(
+                new Rect(box.x, box.y + box.height * 0.5f - 1f, box.width, 2f),
+                Texture2D.whiteTexture);
 
             float dotSz = 11f;
             float dotX = box.x + (x * 0.5f + 0.5f) * box.width - dotSz * 0.5f;
@@ -583,7 +577,6 @@ namespace MonkeDrone
             GUI.Label(new Rect(box.x, box.yMax + 2f, box.width, 18f), label, lbSt);
         }
 
-        // ── Меню ─────────────────────────────────────────────────────
         void DrawMenu()
         {
             int W = Screen.width, H = Screen.height;
@@ -598,14 +591,14 @@ namespace MonkeDrone
             titleSt.normal.textColor = new Color(0.4f, 0.85f, 1f);
             GUI.Label(new Rect(mx, my + 10f, mw, 38f), "FPV DRONE  —  SETTINGS", titleSt);
 
-            int[] curVals = { throttleAxis, yawAxis, pitchAxis, rollAxis,
-                              armAxis, (int)flightMode, (int)speedMode };
+            int[] curVals = { DroneT, DroneY, DroneP, DroneR,
+                              DroneA, (int)DroneM, (int)DroneS };
 
             for (int i = 0; i < menuLabels.Length; i++)
             {
                 bool sel = (i == menuSel);
                 float rowY = my + 58f + i * 46f;
-                string optTxt = menuOptions[i][curVals[i]];
+                string opt = menuOptions[i][curVals[i]];
 
                 if (sel)
                 {
@@ -624,9 +617,9 @@ namespace MonkeDrone
                 vSt.alignment = TextAnchor.MiddleRight;
                 vSt.normal.textColor = sel ? Color.yellow : new Color(0.85f, 0.85f, 0.5f);
                 GUI.Label(new Rect(mx + 18f, rowY, mw - 36f, 34f),
-                          sel ? $"◀  {optTxt}  ▶" : optTxt, vSt);
+                          sel ? $"◀  {opt}  ▶" : opt, vSt);
 
-                // Live axis bar (тільки для перших 5 пунктів — осі)
+                // Живий бар поточного значення осі (тільки для DroneT/Y/P/R/A)
                 if (i < 5)
                 {
                     float liveVal = (NormAxis(curVals[i]) + 1f) * 0.5f;
@@ -641,32 +634,21 @@ namespace MonkeDrone
                       "[↑↓] Navigate    [←→] Change    [F] Close", styleHint);
         }
 
-        // ── Стилі ────────────────────────────────────────────────────
         void EnsureStyles()
         {
             if (stylesInit) return;
             stylesInit = true;
 
             styleLabel = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 20,
-                alignment = TextAnchor.MiddleCenter
-            };
+            { fontSize = 20, alignment = TextAnchor.MiddleCenter };
             styleLabel.normal.textColor = Color.white;
 
             styleBig = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 30,
-                fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleCenter
-            };
+            { fontSize = 30, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
             styleBig.normal.textColor = Color.white;
 
             styleHint = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 14,
-                alignment = TextAnchor.MiddleCenter
-            };
+            { fontSize = 14, alignment = TextAnchor.MiddleCenter };
             styleHint.normal.textColor = new Color(0.65f, 0.65f, 0.65f);
         }
     }
