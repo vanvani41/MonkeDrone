@@ -177,8 +177,8 @@ namespace MonkeDrone
             }
             else if (calibPhase == CalibPhase.SelectType)
             {
-                bool pickGamepad = Input.GetKeyDown(KeyCode.Alpha1);
-                bool pickFPV = Input.GetKeyDown(KeyCode.Alpha2);
+                bool pickGamepad = Input.GetKeyDown(KeyCode.G);
+                bool pickFPV = Input.GetKeyDown(KeyCode.H);
                 if (pickGamepad || pickFPV)
                 {
                     isGamepad = pickGamepad;
@@ -477,8 +477,8 @@ namespace MonkeDrone
                 case CalibPhase.SelectType:
                     title = "CALIBRATION  —  STEP 3 / 3";
                     body = "Вибери тип контролера:\n\n"
-                          + "[1]  або  [Button A]  →  Gamepad\n"
-                          + "[2]  або  [Button B]  →  FPV Radio";
+                          + "[F]  →  Gamepad\n"
+                          + "[G]  →  FPV Radio";
                     break;
             }
 
