@@ -177,9 +177,8 @@ namespace MonkeDrone
             }
             else if (calibPhase == CalibPhase.SelectType)
             {
-                bool pickGamepad = Input.GetKeyDown(KeyCode.Alpha1)
-                bool pickFPV = Input.GetKeyDown(KeyCode.Alpha2)
-
+                bool pickGamepad = Input.GetKeyDown(KeyCode.Alpha1);
+                bool pickFPV = Input.GetKeyDown(KeyCode.Alpha2);
                 if (pickGamepad || pickFPV)
                 {
                     isGamepad = pickGamepad;
