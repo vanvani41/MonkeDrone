@@ -9,5 +9,5 @@ I used [MonkeDrone's](https://www.github.com/vanvani41/MonkeDrone) code that was
 Ви можете мене запитати: "Чому я зробив цей файл?" - Відповідь проста. Я маю ліцензію Apache 2, and people who taking code from this repo must add this file to their project, WITHOUT ANY CHANGES! AND THEY MUST COPY EVERYTHING I WANT FROM THIS FILE
 
 Той хто бере код, вам потрібно скопіювати **все під цією лінією**:
-I used [MonkeDrone's](https://www.github.com/vanvani41/MonkeDrone) code that was created by [vanvani41](https://www.github.com/vanvani41).
+Я використав код [MonkeDrone](https://www.github.com/vanvani41/MonkeDrone) який був створений [vanvani41](https://www.github.com/vanvani41).
 </details>
