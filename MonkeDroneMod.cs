@@ -13,7 +13,8 @@ namespace MonkeDrone
     {
         public static Mod Instance { get; private set; }
 
-        // ─── CALIBRATION ────────────────────────────────────────────
+        #region ═══════════ Another calib? ════════════════════════════════════════════
+
         public enum CalibPhase { Center, Edges, SelectType, Done }
         public CalibPhase calibPhase = CalibPhase.Center;
         public float calibTimer = 7f;
@@ -25,7 +26,10 @@ namespace MonkeDrone
         readonly float[] axisCenter = new float[10];
         bool isGamepad = true;
 
-        // ─── MENU ───────────────────────────────────────────────────
+        #endregion
+
+        #region ═══════════ MENU ═════════════════════════════════
+
         bool menuOpen = false;
         int menuSel = 0;  // поточно вибраний рядок у меню
 
@@ -34,7 +38,7 @@ namespace MonkeDrone
         int DroneY = 0;  // Yaw      — поворот навколо вертикальної осі
         int DroneP = 3;  // Pitch    — нахил вперед/назад
         int DroneR = 2;  // Roll     — нахил ліво/право
-        int DroneA = 5;  // Arming   — вмикання/вимикання моторів
+        int DroneA = 0;  // Arming   — вмикання/вимикання моторів
 
         public enum FlightMode { Acro, Angle, Horizon }
         public enum SpeedMode { Slow, Middle, Fast }
@@ -57,6 +61,7 @@ namespace MonkeDrone
             new[]{"Acro","Angle","Horizon"},                 // Mode
             new[]{"Slow","Mid","Fast"}                       // Speed
         };
+
 
         // ─── ARMING ─────────────────────────────────────────────────
         bool armed = false;
@@ -87,9 +92,9 @@ namespace MonkeDrone
         GUIStyle styleHint;
         bool stylesInit = false;
 
-        // ════════════════════════════════════════════════════════════
-        //  AWAKE
-        // ════════════════════════════════════════════════════════════
+        #endregion
+
+        #region ══════ AWAKE ══════════════════════════════════
 
         void Awake()
         {
@@ -104,9 +109,9 @@ namespace MonkeDrone
             }
         }
 
-        // ════════════════════════════════════════════════════════════
-        //  INIT  —  викликається з Plugin.cs / OnPlayerSpawned
-        // ════════════════════════════════════════════════════════════
+        #endregion
+
+        #region ═══════════ INIT (for Plugin.cs) ════════════════════════════════════════════════
 
         public static void Init()
         {
@@ -125,9 +130,9 @@ namespace MonkeDrone
             Instance.Logger.LogInfo("[MonkeDrone] Init — calibration started");
         }
 
-        // ════════════════════════════════════════════════════════════
-        //  UPDATE
-        // ════════════════════════════════════════════════════════════
+        #endregion
+
+        #region══════════ UPDATE ═══════════════════════════════════════════════
 
         void Update()
         {
@@ -142,9 +147,9 @@ namespace MonkeDrone
                 HandleMenuKeys();
         }
 
-        // ════════════════════════════════════════════════════════════
-        //  CALIBRATION
-        // ════════════════════════════════════════════════════════════
+        #endregion
+
+        #region ════════════════  CALIB ════════════════════════════════════════════
 
         void UpdateCalib()
         {
@@ -191,9 +196,9 @@ namespace MonkeDrone
             }
         }
 
-        // ════════════════════════════════════════════════════════════
-        //  SPAWN DRONE
-        // ════════════════════════════════════════════════════════════
+        #endregion
+
+        #region ══════════════ SPAWN MONKEDRONE ══════════════════════════════════════════════
 
         void SpawnDrone()
         {
@@ -237,9 +242,9 @@ namespace MonkeDrone
             Logger.LogInfo("[MonkeDrone] Drone spawned at " + spawnPos);
         }
 
-        // ════════════════════════════════════════════════════════════
-        //  ARMING
-        // ════════════════════════════════════════════════════════════
+        #endregion
+
+        #region ══════════════ ARMING══════════════════════════════════════════════
 
         void UpdateArm()
         {
@@ -296,9 +301,9 @@ namespace MonkeDrone
             Logger.LogInfo("[MonkeDrone] DISARMED");
         }
 
-        // ════════════════════════════════════════════════════════════
-        //  FLIGHT PHYSICS (FixedUpdate)
-        // ════════════════════════════════════════════════════════════
+        #endregion
+
+        #region ══════════ PHYSICS ═══════════════════════════════════
 
         void FixedUpdate()
         {
@@ -343,7 +348,11 @@ namespace MonkeDrone
             flightTimer += Time.fixedDeltaTime;
         }
 
-        // Acro — прямий контроль кутової швидкості (без автовирівнювання)
+        #endregion
+
+        #region ═════════ MODES ═════════════════════════
+
+        // Acro
         void FlightAcro(float pitch, float roll, float yaw, float maxRate)
         {
             float rad = maxRate * Mathf.Deg2Rad;
@@ -354,7 +363,7 @@ namespace MonkeDrone
             ), ForceMode.Force);
         }
 
-        // Angle — автовирівнювання до заданого кута нахилу
+        // Angle
         void FlightAngle(float pitch, float roll, float yaw,
                          float maxAngle, float maxRate, float kp)
         {
@@ -379,6 +388,8 @@ namespace MonkeDrone
             if (range < 0.001f) return 0f;
             return Mathf.Clamp01((raw - axisMin[DroneT]) / range);
         }
+
+        #endregion
 
         // ════════════════════════════════════════════════════════════
         //  INPUT HELPERS
@@ -441,9 +452,7 @@ namespace MonkeDrone
 
         static int Wrap(int x, int m) => ((x % m) + m) % m;
 
-        // ════════════════════════════════════════════════════════════
-        //  GUI
-        // ════════════════════════════════════════════════════════════
+        #region ══════════════ GUI YAY!! ═══════════════════════════════════════
 
         void OnGUI()
         {
@@ -650,5 +659,6 @@ namespace MonkeDrone
             { fontSize = 14, alignment = TextAnchor.MiddleCenter };
             styleHint.normal.textColor = new Color(0.65f, 0.65f, 0.65f);
         }
+        #endregion
     }
 }
