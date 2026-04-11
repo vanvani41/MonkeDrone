@@ -13,7 +13,7 @@ namespace MonkeDrone
     {
         public static Mod Instance { get; private set; }
 
-        #region ═══════════ Another calib? ════════════════════════════════════════════
+        #region ═══════════ CALIB FIELDS ══════════════════════════════════════════
 
         public enum CalibPhase { Center, Edges, SelectType, Done }
         public CalibPhase calibPhase = CalibPhase.Center;
@@ -28,7 +28,7 @@ namespace MonkeDrone
 
         #endregion
 
-        #region ═══════════ MENU ═════════════════════════════════
+        #region ═══════════ MENU FIELDS ══════════════════════════════════════════
 
         bool menuOpen = false;
         int menuSel = 0;  // поточно вибраний рядок у меню
@@ -44,7 +44,7 @@ namespace MonkeDrone
         public enum SpeedMode { Slow, Middle, Fast }
 
         FlightMode DroneM = FlightMode.Angle;  // Mode  — режим польоту
-        SpeedMode DroneS = SpeedMode.Middle;  // Speed — швидкість
+        SpeedMode DroneS = SpeedMode.Middle;   // Speed — швидкість
 
         readonly string[] menuLabels =
         {
@@ -53,22 +53,21 @@ namespace MonkeDrone
         };
         readonly string[][] menuOptions =
         {
-            new[]{"0","1","2","3","4","5","6","7","8","9"},  // Throttle
-            new[]{"0","1","2","3","4","5","6","7","8","9"},  // Yaw
-            new[]{"0","1","2","3","4","5","6","7","8","9"},  // Pitch
-            new[]{"0","1","2","3","4","5","6","7","8","9"},  // Roll
-            new[]{"Disarmed","Armed"},                       // Arm
-            new[]{"Acro","Angle","Horizon"},                 // Mode
-            new[]{"Slow","Mid","Fast"}                       // Speed
+            new[]{"0","1","2","3","4","5","6","7","8","9"},                                                    // Throttle
+            new[]{"0","1","2","3","4","5","6","7","8","9"},                                                    // Yaw
+            new[]{"0","1","2","3","4","5","6","7","8","9"},                                                    // Pitch
+            new[]{"0","1","2","3","4","5","6","7","8","9"},                                                    // Roll
+            new[]{"Disarmed","Armed"},                                                                         // Arm
+            new[]{"Acro","Angle","Horizon"},                                                                   // Mode
+            new[]{"Slow","Mid","Fast"},                                                                        // Speed
+            new[]{"Axis","Button"},                                                                            // Arm Input Type
+            new[]{"0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19"},  // Arm Button
         };
 
+        #endregion
 
-        // ─── ARMING ─────────────────────────────────────────────────
-        bool armed = false;
-        bool prevArmSwitch = false;  // попередній стан arm перемикача
-        bool showThrottleWarn = false;
+        #region ═══════════ DRONE FIELDS ═════════════════════════════════════════
 
-        // ─── DRONE OBJECT ───────────────────────────────────────────
         // go  — GameObject самого дрона у сцені
         // cam — FPV камера прикріплена до дрона
         // rb  — Rigidbody (фізичне тіло дрона, маса / сила / обертання)
@@ -77,7 +76,10 @@ namespace MonkeDrone
         Rigidbody rb;
         bool droneReady = false;
 
-        // ─── STATS ──────────────────────────────────────────────────
+        bool armed = false;
+        bool prevArmSwitch = false;  // попередній стан arm перемикача
+        bool showThrottleWarn = false;
+
         float flightTimer = 0f;  // скільки секунд летимо з моменту армінгу
 
         // ─── SPEED PRESETS  [Slow, Middle, Fast] ─────────────────────
@@ -86,7 +88,10 @@ namespace MonkeDrone
         readonly float[] angleLimitPre = { 25f, 50f, 75f };  // макс нахил (Angle)
         readonly float[] kpPreset = { 8f, 10f, 14f };  // P-коефіцієнт (Angle)
 
-        // ─── GUI STYLES ──────────────────────────────────────────────
+        #endregion
+
+        #region ═══════════ GUI FIELDS ═══════════════════════════════════════════
+
         GUIStyle styleLabel;
         GUIStyle styleBig;
         GUIStyle styleHint;
@@ -94,7 +99,7 @@ namespace MonkeDrone
 
         #endregion
 
-        #region ══════ AWAKE ══════════════════════════════════
+        #region ══════════════ AWAKE ══════════════════════════════════════════════
 
         void Awake()
         {
@@ -111,7 +116,7 @@ namespace MonkeDrone
 
         #endregion
 
-        #region ═══════════ INIT (for Plugin.cs) ════════════════════════════════════════════════
+        #region ══════════════ INIT ═══════════════════════════════════════════════
 
         public static void Init()
         {
@@ -132,7 +137,7 @@ namespace MonkeDrone
 
         #endregion
 
-        #region══════════ UPDATE ═══════════════════════════════════════════════
+        #region ══════════════ UPDATE ═════════════════════════════════════════════
 
         void Update()
         {
@@ -149,7 +154,54 @@ namespace MonkeDrone
 
         #endregion
 
-        #region ════════════════  CALIB ════════════════════════════════════════════
+        #region ══════════════ FIXED UPDATE (PHYSICS) ═════════════════════════════
+
+        void FixedUpdate()
+        {
+            if (!droneReady || !armed) return;
+
+            int si = (int)DroneS;
+            float maxThrust = thrustPreset[si];
+            float maxRate = ratePreset[si];
+            float maxAngle = angleLimitPre[si];
+            float kp = kpPreset[si];
+
+            float throttleNorm = ThrottleNorm();
+            float yawIn = NormAxis(DroneY);
+            float pitchIn = NormAxis(DroneP);
+            float rollIn = NormAxis(DroneR);
+
+            // Тяга — компенсуємо гравітацію + додаємо тягу гравця
+            float gravComp = rb.mass * Physics.gravity.magnitude;
+            float thrust = throttleNorm * maxThrust + gravComp;
+            rb.AddForce(go.transform.up * thrust, ForceMode.Force);
+
+            switch (DroneM)
+            {
+                case FlightMode.Acro:
+                    FlightAcro(pitchIn, rollIn, yawIn, maxRate);
+                    break;
+
+                case FlightMode.Angle:
+                    FlightAngle(pitchIn, rollIn, yawIn, maxAngle, maxRate, kp);
+                    break;
+
+                case FlightMode.Horizon:
+                    // Центр стіка = Angle (стабільно), краї = Acro (акробатика)
+                    float blend = Mathf.Clamp01(
+                        (Mathf.Abs(pitchIn) + Mathf.Abs(rollIn) - 0.6f) / 0.4f);
+                    FlightAngle(pitchIn * (1f - blend), rollIn * (1f - blend),
+                                yawIn, maxAngle, maxRate * (1f - blend), kp);
+                    FlightAcro(pitchIn * blend, rollIn * blend, 0f, maxRate * blend);
+                    break;
+            }
+
+            flightTimer += Time.fixedDeltaTime;
+        }
+
+        #endregion
+
+        #region ══════════════ CALIB ══════════════════════════════════════════════
 
         void UpdateCalib()
         {
@@ -184,6 +236,7 @@ namespace MonkeDrone
             {
                 bool pickGamepad = Input.GetKeyDown(KeyCode.G);
                 bool pickFPV = Input.GetKeyDown(KeyCode.H);
+
                 if (pickGamepad || pickFPV)
                 {
                     isGamepad = pickGamepad;
@@ -198,7 +251,7 @@ namespace MonkeDrone
 
         #endregion
 
-        #region ══════════════ SPAWN MONKEDRONE ══════════════════════════════════════════════
+        #region ══════════════ SPAWN DRONE ════════════════════════════════════════
 
         void SpawnDrone()
         {
@@ -214,8 +267,8 @@ namespace MonkeDrone
             // rb — Rigidbody: маса, тяга, обертання, гравітація
             rb = go.AddComponent<Rigidbody>();
             rb.mass = 0.25f;
-            rb.linearDamping = 1.8f;   // опір руху (колишній drag)
-            rb.angularDamping = 4f;     // опір обертання (колишній angularDrag)
+            rb.linearDamping = 1.8f;  // опір руху (колишній drag)
+            rb.angularDamping = 4f;    // опір обертання (колишній angularDrag)
             rb.useGravity = true;
             rb.maxAngularVelocity = 50f;
 
@@ -244,7 +297,7 @@ namespace MonkeDrone
 
         #endregion
 
-        #region ══════════════ ARMING══════════════════════════════════════════════
+        #region ══════════════ ARMING ═════════════════════════════════════════════
 
         void UpdateArm()
         {
@@ -303,56 +356,9 @@ namespace MonkeDrone
 
         #endregion
 
-        #region ══════════ PHYSICS ═══════════════════════════════════
+        #region ══════════════ FLIGHT MODES ═══════════════════════════════════════
 
-        void FixedUpdate()
-        {
-            if (!droneReady || !armed) return;
-
-            int si = (int)DroneS;
-            float maxThrust = thrustPreset[si];
-            float maxRate = ratePreset[si];
-            float maxAngle = angleLimitPre[si];
-            float kp = kpPreset[si];
-
-            float throttleNorm = ThrottleNorm();
-            float yawIn = NormAxis(DroneY);
-            float pitchIn = NormAxis(DroneP);
-            float rollIn = NormAxis(DroneR);
-
-            // Тяга — компенсуємо гравітацію + додаємо тягу гравця
-            float gravComp = rb.mass * Physics.gravity.magnitude;
-            float thrust = throttleNorm * maxThrust + gravComp;
-            rb.AddForce(go.transform.up * thrust, ForceMode.Force);
-
-            switch (DroneM)
-            {
-                case FlightMode.Acro:
-                    FlightAcro(pitchIn, rollIn, yawIn, maxRate);
-                    break;
-
-                case FlightMode.Angle:
-                    FlightAngle(pitchIn, rollIn, yawIn, maxAngle, maxRate, kp);
-                    break;
-
-                case FlightMode.Horizon:
-                    // Blend: центр стіка = Angle, краї = Acro
-                    float blend = Mathf.Clamp01(
-                        (Mathf.Abs(pitchIn) + Mathf.Abs(rollIn) - 0.6f) / 0.4f);
-                    FlightAngle(pitchIn * (1f - blend), rollIn * (1f - blend),
-                                yawIn, maxAngle, maxRate * (1f - blend), kp);
-                    FlightAcro(pitchIn * blend, rollIn * blend, 0f, maxRate * blend);
-                    break;
-            }
-
-            flightTimer += Time.fixedDeltaTime;
-        }
-
-        #endregion
-
-        #region ═════════ MODES ═════════════════════════
-
-        // Acro
+        // Acro — прямий контроль кутової швидкості (без автовирівнювання)
         void FlightAcro(float pitch, float roll, float yaw, float maxRate)
         {
             float rad = maxRate * Mathf.Deg2Rad;
@@ -363,7 +369,7 @@ namespace MonkeDrone
             ), ForceMode.Force);
         }
 
-        // Angle
+        // Angle — автовирівнювання до заданого кута нахилу
         void FlightAngle(float pitch, float roll, float yaw,
                          float maxAngle, float maxRate, float kp)
         {
@@ -381,6 +387,8 @@ namespace MonkeDrone
             ), ForceMode.Force);
         }
 
+        // Horizon — в FixedUpdate через blend (Angle + Acro)
+
         float ThrottleNorm()
         {
             float raw = RawAxis(DroneT);
@@ -391,9 +399,7 @@ namespace MonkeDrone
 
         #endregion
 
-        // ════════════════════════════════════════════════════════════
-        //  INPUT HELPERS
-        // ════════════════════════════════════════════════════════════
+        #region ══════════════ INPUT HELPERS ══════════════════════════════════════
 
         // RawAxis — сирий Unity axis без нормалізації (-1 до +1)
         float RawAxis(int idx)
@@ -419,9 +425,9 @@ namespace MonkeDrone
             }
         }
 
-        // ════════════════════════════════════════════════════════════
-        //  MENU INPUT
-        // ════════════════════════════════════════════════════════════
+        #endregion
+
+        #region ══════════════ MENU INPUT ═════════════════════════════════════════
 
         void HandleMenuKeys()
         {
@@ -452,7 +458,9 @@ namespace MonkeDrone
 
         static int Wrap(int x, int m) => ((x % m) + m) % m;
 
-        #region ══════════════ GUI YAY!! ═══════════════════════════════════════
+        #endregion
+
+        #region ══════════════ GUI ════════════════════════════════════════════════
 
         void OnGUI()
         {
@@ -486,8 +494,8 @@ namespace MonkeDrone
                 case CalibPhase.SelectType:
                     title = "CALIBRATION  —  STEP 3 / 3";
                     body = "Вибери тип контролера:\n\n"
-                          + "[F]  →  Gamepad\n"
-                          + "[G]  →  FPV Radio";
+                          + "[G]  →  Gamepad\n"
+                          + "[H]  →  FPV Radio";
                     break;
             }
 
@@ -659,6 +667,7 @@ namespace MonkeDrone
             { fontSize = 14, alignment = TextAnchor.MiddleCenter };
             styleHint.normal.textColor = new Color(0.65f, 0.65f, 0.65f);
         }
+
         #endregion
     }
 }
