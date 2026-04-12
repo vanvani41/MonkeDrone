@@ -1,13 +1,5 @@
-<details><summary>English</summary>
-You can ask me: "Why did i made this file?" - The answer is simple. I have Apache 2 license, and people who taking code from this repo must add this file to their project, WITHOUT ANY CHANGES! AND THEY MUST COPY EVERYTHING I WANT FROM THIS FILE
+© 2026 vanvani41
 
-Who is taking the code, you need to copy **everything below this line**:
-I used [MonkeDrone's](https://www.github.com/vanvani41/MonkeDrone) code that was created by [vanvani41](https://www.github.com/vanvani41).
-</details>
+This repository contains code from [MonkeDrone](https://www.github.com/vanvani41/MonkeDrone/) mod that was made by [vanvani41](https://www.github.com/vanvani41/) and under license [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0).
 
-<details><summary>Українська</summary>
-Ви можете мене запитати: "Чому я зробив цей файл?" - Відповідь проста. Я маю ліцензію Apache 2, and people who taking code from this repo must add this file to their project, WITHOUT ANY CHANGES! AND THEY MUST COPY EVERYTHING I WANT FROM THIS FILE
-
-Той хто бере код, вам потрібно скопіювати **все під цією лінією**:
-Я використав код [MonkeDrone](https://www.github.com/vanvani41/MonkeDrone) який був створений [vanvani41](https://www.github.com/vanvani41).
-</details>
+Цей репозиторії містить код з моду [MonkeDrone](https://www.github.com/vanvani41/MonkeDrone/) який був зроблений [vanvani41](https://www.github.com/vanvani41/) та під ліцензією [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0).
